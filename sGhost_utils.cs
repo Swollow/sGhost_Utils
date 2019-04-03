@@ -14,7 +14,7 @@
 
 
 $Swol_SGhostUtilsTmpFVersion = 1;
-if($Swol_SGhostUtilsVersion !$= "" && $Swol_SGhostUtilsVersion <= $Swol_SGhostUtilsTmpFVersion)
+if($Swol_SGhostUtilsVersion !$= "" && $Swol_SGhostUtilsVersion >= $Swol_SGhostUtilsTmpFVersion)
 	return;
 $Swol_SGhostUtilsVersion = $Swol_SGhostUtilsTmpFVersion;
 
@@ -84,11 +84,10 @@ function swol_sGhost::destroy(%this,%skipClientClean)
 {
 	for(%i=0;(%d=%this.getTaggedField(%i))!$="";%i++)
 	{
-		if((%db = getField(%d,0)) $= "maxPlayers")
+		if(getSubStr((%db = getField(%d,0)),0,1) !$= "s")
 			continue;
 		%db = getSubStr(%db,1,255);
 		%set = getField(%d,1);
-		talk(%db SPC %set);
 		%c = %set.getCount();
 		while(%c-->=0)
 			%set.getObject(%c).delete();
@@ -135,7 +134,6 @@ function swol_sGhost::iniGhostObjSet(%this,%db)
 	if(isObject(%this.s[%dbName]))
 		return 0;
 
-	%s = %this.s[%dbName] = new simSet();
 	%dbClass = %db.getClassName();
 	switch$(%dbClass)
 	{
@@ -146,6 +144,8 @@ function swol_sGhost::iniGhostObjSet(%this,%db)
 		default:
 			return 0;
 	}
+	%s = %this.s[%dbName] = new simSet();
+	missionCleanup.add(%s);
 	for(%i=0;%i<%this.maxPlayers;%i++)
 	{
 		%o = new (%class)()
@@ -178,7 +178,7 @@ package swol_sGhostUtils_v1_KILLER
 {
 	function gameConnection::spawnPlayer(%cl)
 	{
-		eval("function sGhost_ini(%x){error(\"sGhost_ini() - a player has already spawned\");}function sGhost_iniObjSet(%x){error(\"sGhost_iniObjSet(db) - a player has already spawned\");}");
+		eval("function sGhost_ini(%x){error(\"sGhost_ini() - a player has already spawned\");}function sGhost_iniObjSet(%x){error(\"sGhost_iniObjSet(db) - a player has already spawned\");}function swol_sGhost::processQueue(%x){}");
 		schedule(1,0,deactivatePackage,swol_sGhostUtils_v1_KILLER);
 		return parent::spawnPlayer(%cl);
 	}
