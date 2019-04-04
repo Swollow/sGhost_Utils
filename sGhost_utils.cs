@@ -5,15 +5,16 @@
 //Functions
 //	sGhost_ini();						Initilize sGhost utils, only call this after you have initilized all your objSets,
 //											you must call this before any clients spawn
-//	sGhost_iniObjSet(datablock);		Initilize an sGhost object set, this will create 64+ instances of the object meant to be designated
-//											for each individual player, you must call this before any clients spawn
+//	sGhost_iniObjSet(datablock,e);		Initilize an sGhost object set, this will create 64+ instances of the object meant to be designated
+//											for each individual player, you must call this before any clients spawn, e is a multiplier of
+//											how many objects to create
 //	sGhost_getObj(datablock,client);	Gets an sGhost object for a client, call this everytime you need to access an object of the type
 //											that is only intended for that single client to see, DO NOT DELETE THESE OBJECTS, always
 //											move these objects far out of bounds, DO NOT SCOPE THESE TO ANY CLIENTS, DO NOT ADD OR REMOVE
 //											THESE FROM GHOSTALWAYSSET
+//04/03/2019	1.02				Added E onto sGhost_iniObjSet, allows to create even more objects
 
-
-$Swol_SGhostUtilsTmpFVersion = 1;
+$Swol_SGhostUtilsTmpFVersion = 1.02;
 if($Swol_SGhostUtilsVersion !$= "" && $Swol_SGhostUtilsVersion >= $Swol_SGhostUtilsTmpFVersion)
 	return;
 $Swol_SGhostUtilsVersion = $Swol_SGhostUtilsTmpFVersion;
@@ -40,10 +41,14 @@ function sGhost_ini(%flag)
 	}
 	return 0;
 }
-function sGhost_iniObjSet(%db)
+function sGhost_iniObjSet(%db,%extra)
 {
+	if(!isObject(%db))
+		return;
 	if(!isObject(%t = swol_sGhostTmpQueue))
 		%t = new simSet(swol_sGhostTmpQueue);
+	if(%extra !$= "")
+		%t.sE[nameToID(%db)] = %extra;
 	%t.add(%db);
 }
 function sGhost_getObj(%db,%cl)
@@ -63,7 +68,10 @@ function swol_sGhost::processQueue(%this)
 		return 0;
 	%i = %t.getCount();
 	while(%i-->=0)
-		%this.iniGhostObjSet(%t.getObject(%i));
+	{
+		%extra = %t.sE[nameToID(%db = %t.getObject(%i))];
+		%this.iniGhostObjSet(%db,%extra);
+	}
 	%this.waitingToProcessQueue = "";
 	swol_sGhostTmpQueue.delete();
 	return 1;
@@ -128,7 +136,7 @@ function swol_sGhost::getGhostObj(%this,%db,%cl)
 	%cl._SWOL_SGHOST_USE_CNT++;
 	return %o;
 }
-function swol_sGhost::iniGhostObjSet(%this,%db)
+function swol_sGhost::iniGhostObjSet(%this,%db,%extra)
 {
 	%dbName = %db.getName();
 	if(isObject(%this.s[%dbName]))
@@ -146,7 +154,11 @@ function swol_sGhost::iniGhostObjSet(%this,%db)
 	}
 	%s = %this.s[%dbName] = new simSet();
 	missionCleanup.add(%s);
-	for(%i=0;%i<%this.maxPlayers;%i++)
+	if(%extra !$= "")
+		%max = %this.maxPlayers*%extra;
+	else %max = %this.maxPlayers;
+
+	for(%i=0;%i<%max;%i++)
 	{
 		%o = new (%class)()
 		{
